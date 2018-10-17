@@ -19,7 +19,7 @@ func createStorage() (path string){
 			continue
 		}else {UN=append(UN,string(username[i]))}
 	}
-	fileStorage := "/home/"+strings.Join(UN,"")+"/httpServerStorage"
+	fileStorage := "/home/"+strings.Join(UN,"")+"/httpServerStorage/"
 	err:=os.MkdirAll(fileStorage,os.ModePerm)
 	if err!=nil{
 		fmt.Println("error",err)
@@ -34,7 +34,7 @@ func uploadFileHandler(w http.ResponseWriter,r *http.Request){
 			w.Write([]byte("Can't get file from request"))
 		}
 		fileStorage := createStorage()
-		src, oserror := os.Create(fileStorage + h.Filename)
+		src, oserror := os.Create(fileStorage +h.Filename)
 		if oserror != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Can't create file"))
@@ -43,6 +43,7 @@ func uploadFileHandler(w http.ResponseWriter,r *http.Request){
 		f := io.Reader(file)
 		defer src.Close()
 		io.Copy(src, f)
+		log.Println("Uploaded ",h.Filename," file")
 	}
 }
 
