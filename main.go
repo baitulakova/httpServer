@@ -2,25 +2,15 @@ package main
 
 import (
 	"net/http"
-	"os/exec"
 	"os"
 	"fmt"
-	"strings"
 	"io"
 	"log"
-	"reflect"
 )
 
 func createStorage() (path string){
-	var UN = make([]string,0)
-	out, _ := exec.Command("whoami").Output()
-	username:=string(out)
-	for i:=0;i<len(username);i++{
-		if username[i]==10{
-			continue
-		}else {UN=append(UN,string(username[i]))}
-	}
-	fileStorage := "/home/"+strings.Join(UN,"")+"/httpServerStorage/"
+	userHome:=os.Getenv("HOME")
+	fileStorage := userHome+"/httpServerStorage/"
 	err:=os.MkdirAll(fileStorage,os.ModePerm)
 	if err!=nil{
 		fmt.Println("error",err)
@@ -50,14 +40,13 @@ func uploadFileHandler(w http.ResponseWriter,r *http.Request){
 
 func downloadHandler(w http.ResponseWriter, r *http.Request){
 	file:=r.URL.Query().Get("filename")
-	log.Println(file)
 	f,err:=os.Open(createStorage()+file)
-	log.Println(reflect.TypeOf(f))
+	defer f.Close()
 	if err!=nil{
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	defer f.Close()
+	http.ServeFile(w,r,createStorage()+file)
 	io.Copy(w,f)
 }
 
