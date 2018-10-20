@@ -8,6 +8,7 @@ import (
 	"strings"
 	"io"
 	"log"
+	"reflect"
 )
 
 func createStorage() (path string){
@@ -47,8 +48,22 @@ func uploadFileHandler(w http.ResponseWriter,r *http.Request){
 	}
 }
 
+func downloadHandler(w http.ResponseWriter, r *http.Request){
+	file:=r.URL.Query().Get("filename")
+	log.Println(file)
+	f,err:=os.Open(createStorage()+file)
+	log.Println(reflect.TypeOf(f))
+	if err!=nil{
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+	defer f.Close()
+	io.Copy(w,f)
+}
+
 func main() {
 	http.HandleFunc("/upload",uploadFileHandler)
+	http.HandleFunc("/download",downloadHandler)
 	log.Println("Server is working on port :8080")
 	http.ListenAndServe(":8080", nil)
 }
