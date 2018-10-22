@@ -6,7 +6,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
+	"path"
+	"strconv"
 )
+
+var fs=http.FileServer(http.Dir(createStorage()))
 
 func createStorage() (path string){
 	userHome:=os.Getenv("HOME")
@@ -20,19 +25,20 @@ func createStorage() (path string){
 
 func uploadFileHandler(w http.ResponseWriter,r *http.Request){
 	if r.Method=="POST" {
+		r.ParseMultipartForm(32 << 20)
 		file, h, err := r.FormFile("file")
+		defer file.Close()
 		if err != nil {
-			w.Write([]byte("Can't get file from request"))
+			w.WriteHeader(http.StatusBadRequest)
 		}
 		fileStorage := createStorage()
 		src, oserror := os.Create(fileStorage +h.Filename)
+		defer src.Close()
 		if oserror != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			w.Write([]byte("Can't create file"))
 		}
-		defer file.Close()
 		f := io.Reader(file)
-		defer src.Close()
 		io.Copy(src, f)
 		log.Println("Uploaded ",h.Filename," file")
 	}
@@ -40,19 +46,36 @@ func uploadFileHandler(w http.ResponseWriter,r *http.Request){
 
 func downloadHandler(w http.ResponseWriter, r *http.Request){
 	file:=r.URL.Query().Get("filename")
+	if file==""{
+		w.WriteHeader(http.StatusNotFound)
+		w.Write([]byte("Not found"))
+	}
 	f,err:=os.Open(createStorage()+file)
 	defer f.Close()
 	if err!=nil{
 		w.WriteHeader(http.StatusNotFound)
-		return
+		w.Write([]byte("Not found"))
 	}
-	http.ServeFile(w,r,createStorage()+file)
+	fileInfo,_:=f.Stat()
+	w.Header().Set("Content-Length", strconv.FormatInt(fileInfo.Size(),10))
+	log.Println(r.Header)
 	io.Copy(w,f)
+}
+
+func imagesHandler(w http.ResponseWriter,r *http.Request){
+	a:=r.URL.EscapedPath()
+	s:=strings.Split(a,"/")
+	last:=s[len(s)-1]
+	imgPath:=path.Join(createStorage(),"images",last)
+	log.Println(imgPath)
+	http.ServeFile(w,r,imgPath)
 }
 
 func main() {
 	http.HandleFunc("/upload",uploadFileHandler)
 	http.HandleFunc("/download",downloadHandler)
+	http.HandleFunc("/images/",imagesHandler)
+	http.Handle("/", fs)
 	log.Println("Server is working on port :8080")
 	http.ListenAndServe(":8080", nil)
 }
