@@ -13,6 +13,18 @@ import (
 
 var fs=http.FileServer(http.Dir(createStorage()))
 
+var uploadForm=[]byte(
+	`<html>
+		<body>
+		<form action="/upload" method="post"
+		enctype=multipart/form-data>
+			File: <input type="file" name=file">
+			<input type="submit" value="upload">
+		</form>
+		</body>
+</html>
+`)
+
 func createStorage() (path string){
 	userHome:=os.Getenv("HOME")
 	fileStorage := userHome+"/httpServerStorage/"
@@ -24,13 +36,16 @@ func createStorage() (path string){
 }
 
 func uploadFileHandler(w http.ResponseWriter,r *http.Request){
+	w.Write(uploadForm)
 	if r.Method=="POST" {
 		r.ParseMultipartForm(32 << 20)
 		file, h, err := r.FormFile("file")
-		defer file.Close()
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
+			log.Println(err)
+			return
 		}
+		defer file.Close()
 		fileStorage := createStorage()
 		src, oserror := os.Create(fileStorage +h.Filename)
 		defer src.Close()
