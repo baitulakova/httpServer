@@ -16,10 +16,10 @@ var fs=http.FileServer(http.Dir(createStorage()))
 var uploadForm=[]byte(
 	`<html>
 		<body>
-		<form action="/upload" method="post"
-		enctype=multipart/form-data>
-			File: <input type="file" name=file">
-			<input type="submit" value="upload">
+		<form action="/upload" method="post" enctype=multipart/form-data>
+			Выберите файл: <input type="file" name=file">
+			<br>
+			<input type="submit" value="Upload">
 		</form>
 		</body>
 </html>
